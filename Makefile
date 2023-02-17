@@ -85,7 +85,7 @@ prepare:
 test: | $(WORK_DIR)
 	$(AT)$(GHDL) -r $(GHDL_FLAGS) $(CPNT)_tb --vcd=$(WORK_DIR)/$(CPNT)_test.vcd
 ifeq ($(VISUAL), 1)
-	gtkwave $(WORK_DIR)/$(CPNT)_test.vcd
+	gtkwave $(WORK_DIR)/$(CPNT)_test.vcd $(WORK_DIR)/default_config.sav
 endif
 
 ###############################################################################

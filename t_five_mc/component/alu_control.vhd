@@ -13,7 +13,7 @@ entity alu_control is
         funct3     	: in  std_logic_vector(2 downto 0);
         funct7 	    : in  std_logic_vector(6 downto 0);
         alu_ctrl    : out std_logic_vector(3 downto 0)
-    );
+    )
 end alu_control;
 
 architecture alu_control_arch of alu_control is

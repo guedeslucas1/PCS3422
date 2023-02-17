@@ -73,141 +73,104 @@ architecture structural of t_five_pipeline is
             imem_add   : out   std_logic_vector(31 downto 0);
     
             -- Interface IF/ID
-            IF_ID     : out   std_logic_vector(63 downto 0)
+            IF_ID     : out   std_logic_vector(95 downto 0)
     
         );
     end component;
     
     component decode is 
-        port(
-            clk, reset: in std_logic;
-
-            -- Interface IF/ID
-            IF_ID: in std_logic_vector(63 downto 0);
-    
-            -- Interface ID/EX
-            ID_EX: out std_logic_vector(138 downto 0);     
-    
-            -- Entradas
-            reg_write: in std_logic;
-            rd: in std_logic_vector(4 downto 0);
-            data_write: in std_logic_vector(31 downto 0);
-    
-            -- Interface de Hazard
-            rs1:  out std_logic_vector(4 downto 0);
-            rs2:  out std_logic_vector(4 downto 0);
-            cHzA: in std_logic_vector(1 downto 0);
-            cHzB: in std_logic_vector(1 downto 0);
-            EX_predict: in std_logic_vector(31 downto 0);
-            MEM_predict: in std_logic_vector(31 downto 0);
-            WB_predict: in std_logic_vector(31 downto 0)        );
-    end component;
-
-    component execute is 
-        port(
-            ID_EX : in std_logic_vector(138 downto 0);
-            EX_MEM : out std_logic_vector(139 downto 0);
-        
-            --interaface de Hazard
-            EX_predict: out std_logic_vector(31 downto 0);
-            regWex: out std_logic;
-            rd: out std_logic_vector(4 downto 0)
-
-        );
-    end component execute;
-    
-    component mem is 
-        port(
-            clk, reset: in std_logic;
-
-            --interface EX/MEM
-            EX_MEM:     in std_logic_vector(139 downto 0);     
-
-            --interface MEM/WB
-            MEM_WB:     out std_logic_vector(70 downto 0);
-
-            -- interface com memória
-            rw:         out std_logic;
-            address:    out std_logic_vector(31 downto 0);
-            data_write: out std_logic_vector(31 downto 0);
-            data_read:  in std_logic_vector(31 downto 0);
-    
-            -- interface com fetch
-            NPCJ:       out std_logic_vector(31 downto 0);
-            PCsrc:      out std_logic;
-    
-            --interface de Hazard
-            MEM_predict: out std_logic_vector(31 downto 0);
-            regWmem: out std_logic;
-            rd : out std_logic_vector(4 downto 0)
-        );
-    end component mem;
-
-    component writeback is 
     port(
         clk, reset: in std_logic;
 
-        -- Interface MEM/WB
-        MEM_WB: in std_logic_vector(70 downto 0);  
+        -- Interface IF/ID
+        IF_ID: in   std_logic_vector(95 downto 0);
+        
+        -- Interface ID/IS
+        ID_IS:  out std_logic_vector(152 downto 0);
 
-        -- Saídas
-        reg_write: out std_logic;
-        rd: out std_logic_vector(4 downto 0);
-        data_write: out std_logic_vector(31 downto 0);
-
-        -- Interface de Hazard
-        WB_predict: out std_logic_vector(31 downto 0);
-        regWwb: out std_logic
+        -- Entradas
+        reg_write: in std_logic;
+        rd_in: in std_logic_vector(4 downto 0);
+        data_write: in std_logic_vector(31 downto 0)
     );
+
     end component;
 
-    component hazard is
+    component issue is
         port (
-            clock: in std_logic;
-    
-            -- control signals
-            regWex: in std_logic;
-            regWmem: in std_logic;
-            regWwb: in std_logic;
+            clock, reset: in std_logic;
         
-            -- writing registers
-            rs1: in std_logic_vector(4 downto 0);
-            rs2: in std_logic_vector(4 downto 0);
-            
-            rd_exe: in std_logic_vector(4 downto 0);
-            rd_mem: in std_logic_vector(4 downto 0);
-            rd_wb: in std_logic_vector(4 downto 0);
+            -- interface ID/IS
+            ID_IS:  in std_logic_vector(152 downto 0);
+            -- output
         
-            --output signals
-            cHzA: out std_logic_vector(1 downto 0);
-            cHzB: out std_logic_vector(1 downto 0)
-      
-      
-          ) ;
+            --interface IS/EX
+            IS_EX: out std_logic_vector(431 downto 0);
+            -- -- output rs1
+        
+            -- in (cdb)
+            cdb_3: in std_logic_vector(32 downto 0);
+            cdb_2: in std_logic_vector(32 downto 0);
+            cdb_1: in std_logic_vector(32 downto 0)
+        );
     end component;
+    component execute is 
+        port(
+            -- input
+            clock, reset: std_logic;
+
+            -- interface IS/EX
+            IS_EX: in std_logic_vector(431 downto 0);
+            -- interface EX/COM
+
+            EX_COM : out std_logic_vector(44 downto 0); 
+
+            -- input (memory interface)
+            data_read_in: in std_logic_vector(31 downto 0);
+
+            -- output (memory interface)
+            rw_out:         out std_logic;
+            data_write:     out std_logic_vector(31 downto 0);
+            address_out:    out std_logic_vector(31 downto 0);
+
+            cdb_3:            out std_logic_vector(32 downto 0);
+            cdb_2:            out std_logic_vector(32 downto 0);
+            cdb_1:            out std_logic_vector(32 downto 0)
+        );
+    end component;
+   
+    component commit is 
+        port(
+            -- input
+            clock, reset: std_logic;
+
+            -- interface EX/COM
+            EX_COM : in std_logic_vector(44 downto 0); 
+
+            -- output 
+            rd_out: out std_logic_vector(4 downto 0);
+            w_val_out:     out std_logic_vector(31 downto 0);
+            we:  out std_logic
+        );
+    end component;
+
     -- Sinais internos para memória
     signal m_rw: std_logic;
     signal m_imem_add, m_imem_out, m_dmem_add, m_dmem_out, m_dmem_in: std_logic_vector(31 downto 0);
 
     -- Sinais para registradores entre os estágios
-    signal m_if_id_d, m_if_id_q : std_logic_vector(63 downto 0) := (others => '0');
-    signal m_id_ex_d, m_id_ex_q : std_logic_vector(138 downto 0) := (others => '0');
-    signal m_ex_mem_d, m_ex_mem_q : std_logic_vector(139 downto 0) := (others => '0');
-    signal m_mem_wb_d, m_mem_wb_q : std_logic_vector(70 downto 0) := (others => '0');
+    signal m_if_id_d, m_if_id_q : std_logic_vector(95 downto 0) := (others => '0');
+    signal m_id_is_d, m_id_is_q : std_logic_vector(152 downto 0) := (others => '0');
+    signal m_is_ex_d, m_is_ex_q : std_logic_vector(431 downto 0) := (others => '0');
+    signal m_ex_com_d, m_ex_com_q : std_logic_vector(44 downto 0) := (others => '0');
 
-    -- Entradas e saídas entre os estágios
-    signal m_pc_src : std_logic := '0';
-    signal m_NPCJ : std_logic_vector(31 downto 0) := (others => '0');
+    -- Sinais para comunicação com memória
+    signal m_com_we: std_logic;
+    signal m_com_val_out: std_logic_vector(31 downto 0);
+    signal m_com_rd_out: std_logic_vector(4 downto 0);
 
-    signal m_reg_write : std_logic := '0';
-    signal m_reg_data_write : std_logic_vector(31 downto 0) := (others => '0');
-    signal m_rd : std_logic_vector(4 downto 0) := (others => '0');
-
-    -- sinais para Hazard
-    signal m_rs1, m_rs2, m_rd_exe, m_rd_mem, m_rd_wb: std_logic_vector(4 downto 0) := (others => '0');
-    signal m_cHzA, m_cHzB: std_logic_vector(1 downto 0) := (others => '0');
-    signal m_EX_predict, m_MEM_predict, m_WB_predict: std_logic_vector(31 downto 0) := (others => '0');
-    signal m_regWex, m_regWmem, m_regWwb : std_logic := '0'; 
+    -- common data bus
+    signal m_cdb_1, m_cdb_2, m_cdb_3: std_logic_vector(32 downto 0);
 
 begin
 IMEM: rom
@@ -243,7 +206,7 @@ DMEM: ram
 
 IF_ID: reg
     generic map(
-        NB => 64,
+        NB => 96,
         t_prop => 1 ns,
         t_hold => 0.25 ns,
         t_setup => 0.25 ns
@@ -258,9 +221,9 @@ IF_ID: reg
         Q => m_if_id_q
     );
 
-ID_EX: reg
+ID_IS: reg
     generic map(
-        NB => 139,
+        NB => 153,
         t_prop => 1 ns,
         t_hold => 0.25 ns,
         t_setup => 0.25 ns
@@ -271,13 +234,13 @@ ID_EX: reg
         CE => '1',
         R => reset,
         S => '0',
-        D => m_id_ex_d,
-        Q => m_id_ex_q
+        D => m_id_is_d,
+        Q => m_id_is_q
     );
 
-EX_MEM: reg
+IS_EX: reg
     generic map(
-        NB => 140,
+        NB => 432,
         t_prop => 1 ns,
         t_hold => 0.25 ns,
         t_setup => 0.25 ns
@@ -288,13 +251,13 @@ EX_MEM: reg
         CE => '1',
         R => reset,
         S => '0',
-        D => m_ex_mem_d,
-        Q => m_ex_mem_q
+        D => m_is_ex_d,
+        Q => m_is_ex_q
     );
 
-MEM_WB: reg
+EX_COM: reg
     generic map(
-        NB => 71,
+        NB => 45,
         t_prop => 1 ns,
         t_hold => 0.25 ns,
         t_setup => 0.25 ns
@@ -305,16 +268,16 @@ MEM_WB: reg
         CE => '1',
         R => reset,
         S => '0',
-        D => m_mem_wb_d,
-        Q => m_mem_wb_q
+        D => m_ex_com_d,
+        Q => m_ex_com_q
     );
 
 IF_STAGE: fetch 
     port map(
         clk => clock,
         reset => reset,
-        pc_src => m_pc_src,
-        NPCJ => m_NPCJ,
+        pc_src => '0', --TODO
+        NPCJ => (others=>'0'), --TODO
         imem_out => m_imem_out,
         imem_add => m_imem_add,
         IF_ID => m_if_id_d
@@ -324,81 +287,74 @@ ID_STAGE: decode
     port map(
         clk => clock,
         reset => reset,
+
+        -- Interface IF/ID
         IF_ID => m_if_id_q,
-        ID_EX =>  m_id_ex_d,
-        reg_write => m_reg_write,
-        rd => m_rd,
-        data_write => m_reg_data_write,
-        rs1 => m_rs1,
-        rs2 => m_rs2,
-        cHzA => m_cHzA,
-        cHzB => m_cHzB,
-        EX_predict => m_EX_predict,
-        MEM_predict => m_MEM_predict,
-        WB_predict => m_WB_predict
+
+        -- Interface ID/IS
+        ID_IS => m_id_is_d,
+
+        -- Entradas
+        reg_write => m_com_we, 
+        rd_in => m_com_rd_out,
+        data_write => m_com_val_out
     );
 
-EX_STATE: execute
-    port map(
-        ID_EX => m_id_ex_q,
-        EX_MEM => m_ex_mem_d,
-        EX_predict => m_EX_predict,
-        regWex => m_regWex,
-        rd => m_rd_exe
-    );
-
-MEM_STAGE: mem
-    port map(
-        clk => clock,
-        reset => reset,
-        EX_MEM => m_ex_mem_q,     
-        MEM_WB => m_mem_wb_d,
-        rw => m_rw,
-        data_write => m_dmem_in,
-        address => m_dmem_add,
-        data_read => m_dmem_out,
-        NPCJ => m_NPCJ,
-        PCsrc => m_pc_src,
-        MEM_predict => m_MEM_predict,
-        regWmem => m_regWmem,
-        rd => m_rd_mem
-    );
-
-
-WB_STAGE: writeback
-    port map(
-        clk => clock,
-        reset => reset,
-        MEM_WB => m_mem_wb_q,
-        reg_write => m_reg_write,
-        rd => m_rd,
-        data_write => m_reg_data_write,
-        WB_predict => m_WB_predict,
-        regWwb => m_regWwb
-    );
-m_rd_wb <= m_rd;
-
-HZ: hazard
+IS_STAGE: issue
     port map(
         clock => clock,
-    
-        -- control signals
-        regWex => m_regWex,
-        regWmem => m_regWmem,
-        regWwb => m_regWwb,
-    
-        -- writing registers
-        rs1 => m_rs1,
-        rs2 => m_rs2,
+        reset => reset,
 
-        rd_exe => m_rd_exe,
-        rd_mem => m_rd_mem,
-        rd_wb => m_rd_wb,
+        -- interface ID/IS
+        ID_IS => m_id_is_q,
+
+        -- output
+        IS_EX => m_is_ex_d,
         
-        --output signals
-        cHzA => m_cHzA,
-        cHzB => m_cHzB
-    
+        cdb_3 => m_cdb_3,
+        cdb_2 => m_cdb_2,
+        cdb_1 => m_cdb_1
+        
+    ) ;
+
+EX_STAGE: execute
+    port map(
+        -- input
+        clock => clock,
+        reset => reset,
+
+        IS_EX => m_is_ex_q,
+
+        -- output
+
+        EX_COM => m_ex_com_d,
+
+        -- input (memory interface)
+        data_read_in => m_dmem_out,
+
+        -- output (memory interface)
+        rw_out => m_rw,
+        data_write => m_dmem_in,
+        address_out => m_dmem_add,
+
+        cdb_3 => m_cdb_3,
+        cdb_2 => m_cdb_2,
+        cdb_1 => m_cdb_1
     );
 
-end architecture structural;
+COM_STAGE: commit
+    port map(
+        -- input
+        clock => clock,
+        reset => reset,
+
+        EX_COM => m_ex_com_q,
+    
+        -- output
+        rd_out => m_com_rd_out,
+        w_val_out => m_com_val_out,
+        we => m_com_we
+    );
+
+
+end architecture structural ; 

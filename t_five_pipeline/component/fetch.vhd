@@ -18,7 +18,7 @@ entity fetch is
         imem_add   : out   std_logic_vector(31 downto 0);
 
         -- Interface IF/ID
-        IF_ID     : out   std_logic_vector(63 downto 0)
+        IF_ID     : out   std_logic_vector(95 downto 0)
 
     );
 end fetch;
@@ -96,6 +96,7 @@ MUX1: mux2x1
 
     imem_add <= m_pc_q;
 
+    IF_ID(95 downto 64) <= m_pc_q;
     IF_ID(63 downto 32) <= NPC;
     IF_ID(31 downto 0)  <= imem_out;
 

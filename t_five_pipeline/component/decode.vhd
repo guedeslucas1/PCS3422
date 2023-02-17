@@ -8,53 +8,28 @@ entity decode is
         clk, reset: in std_logic;
 
         -- Interface IF/ID
-        IF_ID: in std_logic_vector(63 downto 0);
-
-        -- Interface ID/EX
-        ID_EX: out std_logic_vector(138 downto 0);     
+        IF_ID: in   std_logic_vector(95 downto 0);
+        
+        -- Interface ID/IS
+        ID_IS:  out std_logic_vector(152 downto 0);
+        -- op:     out std_logic_vector(6  downto 0);
+        -- funct3: out std_logic_vector(2  downto 0);
+        -- imm:    out std_logic_vector(31 downto 0);
+        -- rd:     out std_logic_vector(4  downto 0);    
+        -- rs1:    out std_logic_vector(4  downto 0);
+        -- rs2:    out std_logic_vector(4  downto 0);
+        -- rs1_v:  out std_logic_vector(31 downto 0);
+        -- rs2_v:  out std_logic_vector(31 downto 0);
 
         -- Entradas
         reg_write: in std_logic;
-        rd: in std_logic_vector(4 downto 0);
-        data_write: in std_logic_vector(31 downto 0);
-
-        -- Interface de Hazard
-        rs1:  out std_logic_vector(4 downto 0);
-        rs2:  out std_logic_vector(4 downto 0);
-        cHzA: in std_logic_vector(1 downto 0);
-        cHzB: in std_logic_vector(1 downto 0);
-        EX_predict: in std_logic_vector(31 downto 0);
-        MEM_predict: in std_logic_vector(31 downto 0);
-        WB_predict: in std_logic_vector(31 downto 0)
+        rd_in: in std_logic_vector(4 downto 0);
+        data_write: in std_logic_vector(31 downto 0)
     );
 end entity;
 
 architecture decode_arch of decode is
-    -- Dados do IF/ID
-    signal instruction, NPC : std_logic_vector(31 downto 0) := (others => '0');
-
-    -- Dados para ID/EX
-    signal regA, regB : std_logic_vector(31 downto 0) := (others => '0');
-    signal regA_out, regB_out : std_logic_vector(31 downto 0) := (others => '0');
-    signal cExo : std_logic_vector(4 downto 0) := (others => '0');
-    signal cMo : std_logic_vector(3 downto 0) := (others => '0');
-    signal cWbo : std_logic_vector(1 downto 0) := (others => '0');
-
-    -- Sinais internos
-    signal m_rs1, m_rs2 : std_logic_vector(4 downto 0) := (others => '0');
-    
-    component control is
-        port (
-            -- input
-            opcode: std_logic_vector(6 downto 0);
-
-            -- output
-            cWbo: out std_logic_vector(1 downto 0);
-            cMo: out std_logic_vector(3 downto 0);
-            cExo: out std_logic_vector(4 downto 0)
-
-        ) ;
-    end component;
+ 
 
     component reg_file is  
         generic(
@@ -74,37 +49,66 @@ architecture decode_arch of decode is
             data_outb : out std_logic_vector(NBdata - 1 downto 0)
         );
  
-      end component;
+    end component;
 
-      component mux4x1 is
+    component sign_ext is
         generic(
-             NB : integer := 32;
-             t_sel : time := 0.5 ns;
-             t_data : time := 0.25 ns
-        );
-        port(
-           Sel : in std_logic_vector(1 downto 0);
-           I0 : in std_logic_vector(NB - 1 downto 0);
-           I1 : in std_logic_vector(NB - 1 downto 0);
-           I2 : in std_logic_vector(NB - 1 downto 0);
-           I3 : in std_logic_vector(NB - 1 downto 0);
-           O : out std_logic_vector(NB - 1 downto 0)
-        );
-      end component;
+            t_sel    : time := 0.5 ns;
+            t_data   : time := 0.25 ns
+         );
+         port(
+             inst        : in 	std_logic_vector(31 downto 0);
+             op      	: in 	std_logic_vector(6 downto 0);
+             result 	    : out 	std_logic_vector(31 downto 0)
+         );
+    end component;    
+    
+    -- signals for IF/ID interface
+    signal m_inst, m_pc, m_npc : std_logic_vector(31 downto 0);
+
+    --signals for ID/IS interface
+    signal m_op:                std_logic_vector(6 downto 0);
+    signal m_funct3:            std_logic_vector(2 downto 0);
+    signal m_imm:               std_logic_vector(31 downto 0);
+    signal m_rd, m_rs1, m_rs2:  std_logic_vector(4 downto 0);
+    signal m_rs1_v, m_rs2_v:    std_logic_vector(31 downto 0);
 
 begin
-    NPC <= IF_ID(63 downto 32);
-    instruction <= IF_ID(31 downto 0);
 
-    m_rs2 <= instruction(24 downto 20);
-    m_rs1 <= instruction(19 downto 15);
+    --IF/ID
+    m_inst <= IF_ID(31 downto 0);
+    m_npc <= IF_ID(63 downto 32);
+    m_pc <= IF_ID(95 downto 64);
 
-UC: control
-    port map (
-        opcode => instruction(6 downto 0),
-        cWbo => cWbo,
-        cMo => cMo,
-        cExo => cExo
+    --ID/IS
+
+    ID_IS(152 downto 121) <= m_pc;
+    ID_IS(120 downto 89) <= m_rs2_v;
+    ID_IS(88 downto 57) <= m_rs1_v;
+    ID_IS(56 downto 52) <= m_rs2;
+    ID_IS(51 downto 47) <= m_rs1;
+    ID_IS(46 downto 42) <= m_rd;
+    ID_IS(41 downto 10) <= m_imm;
+    ID_IS(9 downto 7) <= m_funct3;
+    ID_IS(6 downto 0) <= m_op;
+
+    -- internal
+
+    m_rs2    <= m_inst(24 downto 20);
+    m_rs1    <= m_inst(19 downto 15);
+    m_rd     <= m_inst(11 downto 7);
+    m_op     <= m_inst(6 downto 0);
+    m_funct3 <= m_inst(14 downto 12);
+
+SXT: sign_ext
+    generic map(
+        t_sel  => 0.5 ns,
+        t_data => 0.25 ns
+    )
+    port map(
+        inst   => m_inst,
+        op     => m_op,
+        result => m_imm
     );
 
 GPR: reg_file
@@ -120,51 +124,10 @@ GPR: reg_file
         we => reg_write,
         adda => m_rs1,
         addb => m_rs2,
-        addw => rd,
+        addw => rd_in,
         data_in => data_write,
-        data_outa => regA,
-        data_outb => regB
+        data_outa => m_rs1_v,
+        data_outb => m_rs2_v
     );
-
-  MUX7: mux4x1
-    generic map (
-         NB =>  32,
-         t_sel => 0.5 ns,
-         t_data => 0.25 ns
-    )
-    port map(
-       Sel => cHzB,
-       I0 => regB,
-       I1 => EX_predict,
-       I2 => MEM_predict,
-       I3 => WB_predict,
-       O => regB_out
-    );
-
-MUX8: mux4x1
-    generic map (
-         NB =>  32,
-         t_sel => 0.5 ns,
-         t_data => 0.25 ns
-    )
-    port map(
-       Sel => cHzA,
-       I0 => regA,
-       I1 => EX_predict,
-       I2 => MEM_predict,
-       I3 => WB_predict,
-       O => regA_out
-);
-
-    ID_EX(138 downto 137) <= cWbo;
-    ID_EX(136 downto 133) <= cMo;
-    ID_EX(132 downto 128) <= cExo;
-    ID_EX(127 downto 96) <= NPC;
-    ID_EX(95 downto 64) <= regA_out;
-    ID_EX(63 downto 32) <= regB_out;
-    ID_EX(31 downto 0) <= instruction;
-
-    rs1 <= m_rs1;
-    rs2 <= m_rs2;
 
 end architecture decode_arch;

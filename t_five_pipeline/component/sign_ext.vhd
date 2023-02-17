@@ -10,7 +10,7 @@ entity sign_ext is
     );
     port(
         inst        : in 	std_logic_vector(31 downto 0);
-        se_op     	: in 	std_logic_vector(1 downto 0);
+        op      	: in 	std_logic_vector(6 downto 0);
         result 	    : out 	std_logic_vector(31 downto 0)
     );
 end sign_ext;
@@ -32,9 +32,10 @@ m_b_out <= resize(signed(inst(31) & inst(7) & inst(30 downto 25) & inst(11 downt
 m_j_out <= resize(signed(inst(31) & inst(19 downto 12) & inst(20) & inst(30 downto 21) & "0"), 32);
 
 -- Resultado da Operação
-result <=   std_logic_vector(m_i_out) after t_sel when se_op = "00" else
-            std_logic_vector(m_s_out) after t_sel when se_op = "01" else
-            std_logic_vector(m_b_out) after t_sel when se_op = "10" else
-            std_logic_vector(m_j_out) after t_sel when se_op = "11";
+result <=   std_logic_vector(m_i_out) after t_sel when op = "0010011" or op = "0000011" else
+            std_logic_vector(m_s_out) after t_sel when op = "0100011" else
+            std_logic_vector(m_b_out) after t_sel when op = "1100011" else
+            std_logic_vector(m_j_out) after t_sel when op = "1101111" else 
+            (others => '0');
 
 end sign_ext_arch;
